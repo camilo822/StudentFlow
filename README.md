@@ -14,7 +14,6 @@ organicen sus horarios, tareas y calificaciones en un solo lugar.
 ## 🚀 Cómo empezar  
 ### Requisitos previos
 * Flutter SDK instalado.
-* Git instalado.
 * Un editor de código como VS Code o Android Studio.
 
 ### Cómo ejecutar el proyecto
