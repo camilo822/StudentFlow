@@ -4,9 +4,10 @@ StudentFlow es una herramienta integral diseñada para que los estudiantes unive
 organicen sus horarios, tareas y calificaciones en un solo lugar.
 
 ## 📸 Capturas de pantalla  
-<img src="img/1.jpeg" alt="Captura de Pantalla 1" width="300"/>
-<img src="img/2.jpeg" alt="Captura de Pantalla 2" width="300"/>
-<img src="img/3.jpeg" alt="Captura de Pantalla 3" width="300"/>
+
+| Pantalla de Inicio | Pendientes | Completadas |
+| :---: | :---: | :---: |
+| <img src="img/1.jpeg" width="200"> | <img src="img/2.jpeg" width="200"> | <img src="img/3.jpeg" width="200"> |
 
 ## 🛠️ Tecnologías utilizadas
 * Flutter - Framework de desarrollo multiplataforma
