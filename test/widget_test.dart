@@ -1,30 +1,28 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+//import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:studentflow/main.dart';
+import 'package:studentflow/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('HomeScreen muestra el saludo', (WidgetTester tester) async {
+    await tester.pumpWidget(const StudentFlowApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verifica que la pantalla principal carga correctamente
+    expect(find.textContaining('Hola'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('HomeScreen muestra tarjetas de resumen', (WidgetTester tester) async {
+    await tester.pumpWidget(const StudentFlowApp());
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Las 3 tarjetas de resumen deben estar visibles
+    expect(find.text('Urgentes'), findsOneWidget);
+    expect(find.text('Pendientes'), findsOneWidget);
+    expect(find.text('Listas'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen muestra lista de tareas', (WidgetTester tester) async {
+    await tester.pumpWidget(const StudentFlowApp());
+
+    // El FAB de nueva tarea debe estar presente
+    expect(find.text('Nueva tarea'), findsOneWidget);
   });
 }
