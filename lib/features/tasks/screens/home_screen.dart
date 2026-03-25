@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/router/app_router.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../data/models/task_model.dart';
+import '../../../data/services/local_storage_service.dart';
 import '../widgets/task_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -12,51 +14,67 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Filtro activo: null = todos
   TaskStatus? _activeFilter;
+  String _userName = '';
+  String _groupName = '';
 
-  List<TaskModel> get _filteredTasks {
-    final tasks = MockData.mockTasks;
-    if (_activeFilter == null) return tasks;
-    return tasks.where((t) => t.status == _activeFilter).toList();
+  // En Semana 3 esto vendrá de un stream de Firebase
+  final List<TaskModel> _tasks = List.from(MockData.mockTasks);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
   }
 
-  // Contadores para los chips de resumen
-  int get _urgentCount => MockData.mockTasks
+  Future<void> _loadUserData() async {
+    final storage = await LocalStorageService.getInstance();
+    setState(() {
+      _userName = storage.userName ?? 'Estudiante';
+      _groupName = storage.groupName ?? MockData.mockGroup.name;
+    });
+  }
+
+  List<TaskModel> get _filteredTasks {
+    if (_activeFilter == null) return _tasks;
+    return _tasks.where((t) => t.status == _activeFilter).toList();
+  }
+
+  int get _urgentCount => _tasks
       .where((t) => (t.isUrgent || t.isOverdue) && t.status != TaskStatus.done)
       .length;
+  int get _pendingCount =>
+      _tasks.where((t) => t.status == TaskStatus.pending).length;
+  int get _doneCount =>
+      _tasks.where((t) => t.status == TaskStatus.done).length;
 
-  int get _pendingCount => MockData.mockTasks
-      .where((t) => t.status == TaskStatus.pending)
-      .length;
-
-  int get _doneCount => MockData.mockTasks
-      .where((t) => t.status == TaskStatus.done)
-      .length;
+  Future<void> _openTaskForm() async {
+    final newTask = await Navigator.pushNamed(context, AppRouter.taskForm);
+    if (newTask != null && newTask is TaskModel) {
+      setState(() => _tasks.insert(0, newTask));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final group = MockData.mockGroup;
-
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ── Header ──────────────────────────────────────────────────────
+            // ── Header ──────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Saludo + avatar
                     Row(
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '¡Hola, Camilo! 👋',
+                              '¡Hola, $_userName! 👋',
                               style: Theme.of(context)
                                   .textTheme
                                   .titleLarge
@@ -64,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              group.name,
+                              _groupName,
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
@@ -73,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         const Spacer(),
-                        // Avatar circular
+                        // Avatar con inicial del nombre
                         Container(
                           width: 44,
                           height: 44,
@@ -81,10 +99,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'C',
-                              style: TextStyle(
+                              _userName.isNotEmpty
+                                  ? _userName[0].toUpperCase()
+                                  : 'E',
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
@@ -97,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ── Tarjetas de resumen ──────────────────────────────────
+                    // ── Tarjetas de resumen ──────────────────────────────
                     Row(
                       children: [
                         _SummaryCard(
@@ -128,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ── Chips de filtro ──────────────────────────────────────
+                    // ── Chips de filtro ──────────────────────────────────
                     Text(
                       'Mis Tareas',
                       style: Theme.of(context).textTheme.titleMedium,
@@ -141,8 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _FilterChip(
                             label: 'Todas',
                             isActive: _activeFilter == null,
-                            onTap: () =>
-                                setState(() => _activeFilter = null),
+                            onTap: () => setState(() => _activeFilter = null),
                           ),
                           const SizedBox(width: 8),
                           _FilterChip(
@@ -154,8 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(width: 8),
                           _FilterChip(
                             label: 'En progreso',
-                            isActive:
-                                _activeFilter == TaskStatus.inProgress,
+                            isActive: _activeFilter == TaskStatus.inProgress,
                             onTap: () => setState(
                                 () => _activeFilter = TaskStatus.inProgress),
                           ),
@@ -175,16 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // ── Lista de tareas ──────────────────────────────────────────────
+            // ── Lista de tareas ──────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final tasks = _filteredTasks;
-                    if (tasks.isEmpty) {
-                      return const _EmptyState();
-                    }
+                    if (tasks.isEmpty) return const _EmptyState();
                     return TaskCard(task: tasks[index]);
                   },
                   childCount:
@@ -195,17 +211,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-
-      // FAB para agregar tarea (funcional en Semana 2)
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Agregar tareas: disponible en Semana 2 🚀'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        onPressed: _openTaskForm,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
@@ -218,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Widgets auxiliares ──────────────────────────────────────────────────────
+// ── Widgets auxiliares (mismos de Semana 1) ───────────────────────────────────
 
 class _SummaryCard extends StatelessWidget {
   final String label;
@@ -289,13 +296,14 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+            color: isActive
+                ? AppColors.primary
+                : AppColors.textSecondary.withOpacity(0.3),
           ),
         ),
         child: Text(
@@ -337,10 +345,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'No hay tareas en esta categoría.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ],
       ),
