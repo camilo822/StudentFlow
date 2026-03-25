@@ -14,24 +14,6 @@ organicen sus horarios, tareas y calificaciones en un solo lugar.
 * Dart - Lenguaje de programación
 * Firebase - Backend y base de datos en tiempo real
 
-## 🚀 Cómo empezar  
-### Requisitos previos
-* Flutter SDK instalado.
-* Un editor de código como VS Code o Android Studio.
-
-### Cómo ejecutar el proyecto
-1. Clona este repositorio:  
-    * git clone https://github.com/camilo822/StudentFlow.git
-
-2. Accede a la carpeta del proyecto:  
-    * cd StudentFlow
-
-3. Instala las dependencias:  
-    * flutter pub get
-
-4. Ejecuta la aplicación:  
-    * flutter run
-
 ## 📋 Roadmap (Plan de trabajo)
 
 ### Semana 1 : Diseño(UI/UX)  
@@ -91,8 +73,6 @@ lib/
 * data/ — Separa los modelos de los repositorios
 * features/ — Cada funcionalidad es autónoma
 * shared/ — Widgets genéricos que usan mucho  
-
-Esta arquitectura sigue el patrón Repository + Provider que se combina muy bien con Firebase y es bastante simple para este proyecto
 
 #
 Desarrollado con ❤️ por Camilo
