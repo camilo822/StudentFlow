@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/app_router.dart';
+import '../../../data/repositories/group_repository.dart';
 import '../../../data/services/local_storage_service.dart';
 import '../widgets/onboarding_text_field.dart';
 
@@ -17,6 +18,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   final _nameCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
   bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -27,30 +29,51 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
-    // Semana 3: aquí se buscará el grupo en Firebase por código.
-    // Por ahora simulamos un pequeño delay y guardamos localmente.
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final code = _codeCtrl.text.trim().toUpperCase();
 
-    final code = _codeCtrl.text.trim().toUpperCase();
-    final storage = await LocalStorageService.getInstance();
-    await storage.setUserName(_nameCtrl.text.trim());
-    await storage.saveGroup(
-      id: 'grp_joined_$code',
-      name: 'Grupo $code',   // en Semana 3 vendrá de Firestore
-      code: code,
-    );
-    await storage.completeOnboarding();
+      // 1. Busca el grupo en Firestore por código
+      final group = await GroupRepository.instance.findByCode(code);
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+      if (group == null) {
+        setState(() => _error = 'Código inválido. Verifica con tu compañero.');
+        return;
+      }
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRouter.home,
-      (route) => false,
-    );
+      final userName = _nameCtrl.text.trim();
+
+      // 2. Agrega al usuario como miembro
+      await GroupRepository.instance.joinGroup(
+        groupId: group.id,
+        userId: userName,
+      );
+
+      // 3. Guarda localmente
+      final storage = await LocalStorageService.getInstance();
+      await storage.setUserName(userName);
+      await storage.saveGroup(
+        id: group.id,
+        name: group.name,
+        code: group.code,
+      );
+      await storage.completeOnboarding();
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRouter.home,
+        (route) => false,
+      );
+    } catch (e) {
+      setState(() => _error = 'Error al unirse. Verifica tu conexión.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -69,68 +92,52 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header ──────────────────────────────────────────────
                 Container(
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F7F4),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.link_rounded,
-                    color: AppColors.secondary,
-                    size: 28,
-                  ),
+                      color: const Color(0xFFE0F7F4),
+                      borderRadius: BorderRadius.circular(16)),
+                  child: const Icon(Icons.link_rounded,
+                      color: AppColors.secondary, size: 28),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Unirse al grupo',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                const Text('Unirse al grupo',
+                    style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
                 const SizedBox(height: 6),
                 const Text(
                   'Ingresa el código que te compartió\ntu compañero.',
                   style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      height: 1.5),
                 ),
-
                 const SizedBox(height: 36),
 
-                const Text(
-                  'Tu nombre',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                const Text('Tu nombre',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
                 const SizedBox(height: 8),
                 OnboardingTextField(
                   controller: _nameCtrl,
                   hint: 'Ej: Valentina',
                   icon: Icons.person_outline_rounded,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Ingresa tu nombre' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Ingresa tu nombre'
+                      : null,
                 ),
-
                 const SizedBox(height: 20),
 
-                const Text(
-                  'Código del grupo',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                const Text('Código del grupo',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
                 const SizedBox(height: 8),
                 OnboardingTextField(
                   controller: _codeCtrl,
@@ -148,8 +155,29 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                   },
                 ),
 
-                const SizedBox(height: 36),
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                        color: AppColors.statusUrgentLight,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: AppColors.statusUrgent, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(_error!,
+                              style: const TextStyle(
+                                  color: AppColors.statusUrgent, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
+                const SizedBox(height: 36),
                 SizedBox(
                   width: double.infinity,
                   height: 54,
@@ -160,25 +188,17 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                     child: _loading
                         ? const SizedBox(
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : const Text(
-                            'Unirse al grupo',
+                                color: Colors.white, strokeWidth: 2.5))
+                        : const Text('Unirse al grupo',
                             style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                                fontSize: 15, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],

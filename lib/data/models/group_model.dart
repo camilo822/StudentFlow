@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class GroupModel {
   final String id;
   final String name;
-  final String code; // código de 6 dígitos para unirse
+  final String code;
   final List<String> memberIds;
   final String createdBy;
   final DateTime createdAt;
@@ -16,8 +18,29 @@ class GroupModel {
   });
 
   int get memberCount => memberIds.length;
-
   bool isMember(String userId) => memberIds.contains(userId);
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'code': code,
+      'memberIds': memberIds,
+      'createdBy': createdBy,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  factory GroupModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return GroupModel(
+      id: doc.id,
+      name: data['name'] as String,
+      code: data['code'] as String,
+      memberIds: List<String>.from(data['memberIds'] as List),
+      createdBy: data['createdBy'] as String,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+    );
+  }
 
   GroupModel copyWith({
     String? id,
@@ -34,28 +57,6 @@ class GroupModel {
       memberIds: memberIds ?? this.memberIds,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'code': code,
-      'memberIds': memberIds,
-      'createdBy': createdBy,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  factory GroupModel.fromMap(Map<String, dynamic> map) {
-    return GroupModel(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      code: map['code'] as String,
-      memberIds: List<String>.from(map['memberIds'] as List),
-      createdBy: map['createdBy'] as String,
-      createdAt: DateTime.parse(map['createdAt'] as String),
     );
   }
 }

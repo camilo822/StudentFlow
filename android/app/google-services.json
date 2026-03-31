@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "150508041060",
+    "project_id": "studentflow-516a4",
+    "storage_bucket": "studentflow-516a4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:150508041060:android:0f76dd475c27ee02c3c071",
+        "android_client_info": {
+          "package_name": "com.example.studentflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwKhpVzyOBhm6hYDWJs_PZNjNrupM0UeQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
